@@ -4,7 +4,7 @@ import os
 from sys import executable, version_info
 from unittest import IsolatedAsyncioTestCase, main
 
-from async_receiver.aio.async_python_subprocess import AsyncPythonSubprocess
+from async_receiver.subprocess.async_python_subprocess import AsyncPythonSubprocess
 
 
 class AsyncPythonSubprocessTestCase(IsolatedAsyncioTestCase):

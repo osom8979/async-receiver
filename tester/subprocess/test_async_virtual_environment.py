@@ -6,7 +6,7 @@ from functools import lru_cache
 from tempfile import TemporaryDirectory
 from unittest import IsolatedAsyncioTestCase, main
 
-from async_receiver.aio.async_virtual_environment import AsyncVirtualEnvironment
+from async_receiver.subprocess.async_virtual_environment import AsyncVirtualEnvironment
 
 
 @lru_cache

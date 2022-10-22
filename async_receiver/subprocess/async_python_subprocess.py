@@ -6,7 +6,7 @@ from functools import reduce
 from json import loads
 from typing import Dict, List, Mapping, Optional, Tuple
 
-from async_receiver.aio.async_subprocess import (
+from async_receiver.subprocess.async_subprocess import (
     AsyncSubprocess,
     ReaderCallable,
     ReaderMethod,

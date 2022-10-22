@@ -4,7 +4,7 @@ from collections import deque
 from sys import executable, version_info
 from unittest import IsolatedAsyncioTestCase, main
 
-from async_receiver.aio.async_subprocess import start_async_subprocess
+from async_receiver.subprocess.async_subprocess import start_async_subprocess
 
 
 class AsyncSubprocessTestCase(IsolatedAsyncioTestCase):

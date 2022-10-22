@@ -7,7 +7,7 @@ from types import SimpleNamespace
 from typing import Optional
 from venv import EnvBuilder
 
-from async_receiver.aio.async_python_subprocess import AsyncPythonSubprocess
+from async_receiver.subprocess.async_python_subprocess import AsyncPythonSubprocess
 
 
 def pip_dirname(
