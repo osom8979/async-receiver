@@ -3,5 +3,6 @@
 
 asctime
 datefmt
+ensurepip
 levelname
 nocov
