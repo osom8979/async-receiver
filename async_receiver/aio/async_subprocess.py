@@ -6,8 +6,8 @@ from asyncio import (
     create_subprocess_shell,
     create_task,
     gather,
+    subprocess,
 )
-from asyncio import subprocess
 from asyncio.streams import StreamReader, StreamWriter
 from dataclasses import dataclass
 from enum import Enum
@@ -81,6 +81,7 @@ class AsyncSubprocess:
 
     @staticmethod
     async def _reader(reader: StreamReader, config: ReaderConfig) -> None:
+        assert config.callback is not None
         if config.reader_method == ReaderMethod.Read:
             while not reader.at_eof():
                 config.callback(await reader.read(config.chunk_size))
@@ -190,6 +191,7 @@ class AsyncSubprocess:
     def stdin(self) -> StreamWriter:
         if not self._writable:
             raise RuntimeError("The writable flag is disabled")
+        assert self.process.stdin
         return self.process.stdin
 
     def write(self, data: bytes) -> None:
@@ -284,7 +286,6 @@ async def start_async_subprocess_simply(
     *commands,
     cwd: Optional[str] = None,
     env: Optional[Mapping[str, str]] = None,
-    writable=False,
     method=SubprocessMethod.Exec,
 ) -> Tuple[int, bytes, bytes]:
     stdout = BytesIO()
@@ -298,12 +299,14 @@ async def start_async_subprocess_simply(
 
     proc = await start_async_subprocess(
         *commands,
-        stdout_callback=_stdout_callback,
-        stderr_callback=_stderr_callback,
         cwd=cwd,
         env=env,
-        writable=writable,
+        writable=False,
         method=method,
+        stdout_callback=_stdout_callback,
+        stderr_callback=_stderr_callback,
+        stdout_reader_method=ReaderMethod.ReadLine,
+        stderr_reader_method=ReaderMethod.ReadLine,
     )
     exit_code = await proc.wait()
     return exit_code, stdout.getvalue(), stderr.getvalue()

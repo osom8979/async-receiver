@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 
-import os
 import sys
 from dataclasses import dataclass
 from functools import reduce
-from typing import Dict, List, Mapping, Optional, Tuple
 from json import loads
+from typing import Dict, List, Mapping, Optional, Tuple
 
 from async_receiver.aio.async_subprocess import (
     AsyncSubprocess,
@@ -62,27 +61,15 @@ class PackageInfo:
 class AsyncPythonSubprocess:
     def __init__(
         self,
-        executable: Optional[str] = None,
-        pip_timeout: Optional[float] = None,
+        executable=sys.executable,
+        pip_timeout=0.0,
         env: Optional[Mapping[str, str]] = None,
         method=SubprocessMethod.Exec,
     ):
-        self._executable = executable if executable else sys.executable
-        self._pip_timeout = pip_timeout if pip_timeout else 0.0
+        self.executable = executable
+        self.pip_timeout = pip_timeout
         self.env = env
         self.method = method
-
-    @property
-    def executable(self) -> str:
-        return self._executable
-
-    @property
-    def executable_dir(self) -> str:
-        return os.path.dirname(self._executable)
-
-    @classmethod
-    def create_system(cls, pip_timeout: Optional[float] = None):
-        return cls(sys.executable, pip_timeout)
 
     async def start_python(
         self,
@@ -101,7 +88,7 @@ class AsyncPythonSubprocess:
         if not subcommands:
             ValueError("Empty subcommands arguments")
 
-        total_commands = [self._executable, *subcommands]
+        total_commands = [self.executable, *subcommands]
         proc = await start_async_subprocess(
             *total_commands,
             cwd=cwd,
@@ -128,8 +115,8 @@ class AsyncPythonSubprocess:
             "--disable-pip-version-check",
             "--no-python-version-warning",
         ]
-        if self._pip_timeout > 0.0:
-            result += ["--timeout", str(self._pip_timeout)]
+        if self.pip_timeout > 0.0:
+            result.append("--timeout={self.pip_timeout}")
         if subcommands:
             result += subcommands
         return result
