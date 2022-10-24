@@ -7,6 +7,7 @@ from setuptools import setup
 
 SOURCE_PATH = os.path.abspath(__file__)
 SOURCE_DIR = os.path.dirname(SOURCE_PATH)
+REQUIREMENTS_MAIN = os.path.join(SOURCE_DIR, "requirements.main.txt")
 REQUIREMENTS_TEST = os.path.join(SOURCE_DIR, "requirements.test.txt")
 
 
@@ -21,4 +22,7 @@ def install_requires(path: str, encoding="utf-8") -> List[str]:
 
 
 if __name__ == "__main__":
-    setup(tests_require=install_requires(REQUIREMENTS_TEST))
+    setup(
+        install_requires=install_requires(REQUIREMENTS_MAIN),
+        tests_require=install_requires(REQUIREMENTS_TEST),
+    )

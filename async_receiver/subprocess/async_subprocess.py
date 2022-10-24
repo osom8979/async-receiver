@@ -10,25 +10,81 @@ from asyncio import (
 )
 from asyncio.streams import StreamReader, StreamWriter
 from dataclasses import dataclass
-from enum import Enum
+from enum import Enum, unique
 from functools import reduce
+from inspect import iscoroutinefunction
 from io import BytesIO
 from signal import SIGINT
-from typing import Callable, Mapping, Optional, Tuple
+from typing import Awaitable, Callable, Dict, Final, Mapping, Optional, Tuple, Union
 
-ReaderCallable = Callable[[bytes], None]
+import psutil
+
+ReaderCallable = Callable[[bytes], Union[Awaitable[None], None]]
 
 
+@unique
 class SubprocessMethod(Enum):
     Exec = 0
     Shell = 1
 
 
+@unique
 class ReaderMethod(Enum):
     Read = 0
     ReadLine = 1
     ReadUntil = 2
     ReadExactly = 3
+
+
+@unique
+class ProcessStatus(Enum):
+    Running = 0
+    Sleeping = 1
+    DiskSleep = 2
+    Stopped = 3
+    TracingStop = 4
+    Zombie = 5
+    Dead = 6
+    WakeKill = 7
+    Waking = 8
+    Parked = 9
+    Idle = 10
+    Locked = 11
+    Waiting = 12
+    Suspended = 13
+
+
+STATUS_RUNNING: Final[str] = "running"
+STATUS_SLEEPING: Final[str] = "sleeping"
+STATUS_DISK_SLEEP: Final[str] = "disk-sleep"
+STATUS_STOPPED: Final[str] = "stopped"
+STATUS_TRACING_STOP: Final[str] = "tracing-stop"
+STATUS_ZOMBIE: Final[str] = "zombie"
+STATUS_DEAD: Final[str] = "dead"
+STATUS_WAKE_KILL: Final[str] = "wake-kill"
+STATUS_WAKING: Final[str] = "waking"
+STATUS_IDLE: Final[str] = "idle"  # Linux, macOS, FreeBSD
+STATUS_LOCKED: Final[str] = "locked"  # FreeBSD
+STATUS_WAITING: Final[str] = "waiting"  # FreeBSD
+STATUS_SUSPENDED: Final[str] = "suspended"  # NetBSD
+STATUS_PARKED: Final[str] = "parked"  # Linux
+
+PROCESS_STATUS_MAP: Final[Dict[str, ProcessStatus]] = {
+    STATUS_RUNNING: ProcessStatus.Running,
+    STATUS_SLEEPING: ProcessStatus.Sleeping,
+    STATUS_DISK_SLEEP: ProcessStatus.DiskSleep,
+    STATUS_STOPPED: ProcessStatus.Stopped,
+    STATUS_TRACING_STOP: ProcessStatus.TracingStop,
+    STATUS_ZOMBIE: ProcessStatus.Zombie,
+    STATUS_DEAD: ProcessStatus.Dead,
+    STATUS_WAKE_KILL: ProcessStatus.WakeKill,
+    STATUS_WAKING: ProcessStatus.Waking,
+    STATUS_PARKED: ProcessStatus.Parked,
+    STATUS_IDLE: ProcessStatus.Idle,
+    STATUS_LOCKED: ProcessStatus.Locked,
+    STATUS_WAITING: ProcessStatus.Waiting,
+    STATUS_SUSPENDED: ProcessStatus.Suspended,
+}
 
 
 @dataclass
@@ -82,20 +138,22 @@ class AsyncSubprocess:
     @staticmethod
     async def _reader(reader: StreamReader, config: ReaderConfig) -> None:
         assert config.callback is not None
-        if config.reader_method == ReaderMethod.Read:
-            while not reader.at_eof():
-                config.callback(await reader.read(config.chunk_size))
-        elif config.reader_method == ReaderMethod.ReadLine:
-            while not reader.at_eof():
-                config.callback(await reader.readline())
-        elif config.reader_method == ReaderMethod.ReadUntil:
-            while not reader.at_eof():
-                config.callback(await reader.readuntil(config.separator))
-        elif config.reader_method == ReaderMethod.ReadExactly:
-            while not reader.at_eof():
-                config.callback(await reader.readexactly(config.chunk_size))
-        else:
-            assert False, "Inaccessible section"
+        while not reader.at_eof():
+            if config.reader_method == ReaderMethod.Read:
+                data = await reader.read(config.chunk_size)
+            elif config.reader_method == ReaderMethod.ReadLine:
+                data = await reader.readline()
+            elif config.reader_method == ReaderMethod.ReadUntil:
+                data = await reader.readuntil(config.separator)
+            elif config.reader_method == ReaderMethod.ReadExactly:
+                data = await reader.readexactly(config.chunk_size)
+            else:
+                assert False, "Inaccessible section"
+
+            if iscoroutinefunction(config.callback):
+                await config.callback(data)
+            else:
+                config.callback(data)
 
     @property
     def started(self) -> bool:
@@ -212,6 +270,14 @@ class AsyncSubprocess:
     def is_closing_stdin(self) -> bool:
         return self.stdin.is_closing()
 
+    def done_stdout(self) -> bool:
+        assert self._stdout_task
+        return self._stdout_task.done()
+
+    def done_stderr(self) -> bool:
+        assert self._stderr_task
+        return self._stderr_task.done()
+
     async def wait_closed_stdin(self) -> None:
         await self.stdin.wait_closed()
 
@@ -246,6 +312,14 @@ class AsyncSubprocess:
 
     def kill(self) -> None:
         self.process.kill()
+
+    @property
+    def status_text(self) -> str:
+        return psutil.Process(self.process.pid).status()
+
+    @property
+    def status(self) -> ProcessStatus:
+        return PROCESS_STATUS_MAP[self.status_text]
 
 
 async def start_async_subprocess(
