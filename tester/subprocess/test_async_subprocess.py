@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 
 from collections import deque
-from sys import executable, version_info
-from unittest import IsolatedAsyncioTestCase, main
 from functools import partial
+from sys import executable, version_info
 from typing import List
+from unittest import IsolatedAsyncioTestCase, main
 
 from async_receiver.subprocess.async_subprocess import start_async_subprocess
 
