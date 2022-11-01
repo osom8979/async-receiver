@@ -10,13 +10,6 @@ from venv import EnvBuilder
 from async_receiver.subprocess.async_python_subprocess import AsyncPythonSubprocess
 
 
-def pip_dirname(
-    major=sys.version_info[0],
-    minor=sys.version_info[1],
-) -> str:
-    return f"python{major}.{minor}"
-
-
 def site_packages_dir(
     prefix: str,
     major=sys.version_info[0],

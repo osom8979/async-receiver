@@ -1,12 +1,15 @@
 # -*- coding: utf-8 -*-
 
+import sys
 from asyncio import (
     Task,
     create_subprocess_exec,
     create_subprocess_shell,
     create_task,
     gather,
+    shield,
     subprocess,
+    wait_for,
 )
 from asyncio.streams import StreamReader, StreamWriter
 from dataclasses import dataclass
@@ -15,6 +18,7 @@ from functools import reduce
 from inspect import iscoroutinefunction
 from io import BytesIO
 from signal import SIGINT
+from time import time
 from typing import Awaitable, Callable, Dict, Final, Mapping, Optional, Tuple, Union
 
 import psutil
@@ -284,8 +288,15 @@ class AsyncSubprocess:
     async def drain_stdin(self) -> None:
         await self.stdin.drain()
 
-    async def wait_process(self) -> int:
-        return await self.process.wait()
+    async def wait_process(self, timeout: Optional[float] = None) -> int:
+        if timeout is not None and timeout <= 0:
+            raise ValueError("The 'timeout' argument must be None or greater than 0")
+
+        if timeout is not None:
+            assert timeout > 0.0
+            return await wait_for(shield(self.process.wait()), timeout=timeout)
+        else:
+            return await self.process.wait()
 
     async def wait_callbacks(self) -> None:
         futures = list()
@@ -296,9 +307,20 @@ class AsyncSubprocess:
         if futures:
             await gather(*futures)
 
-    async def wait(self) -> int:
-        exit_code = await self.wait_process()
-        await self.wait_callbacks()
+    async def wait(self, timeout: Optional[float] = None, injury_time=0.1) -> int:
+        if injury_time <= 0:
+            raise ValueError("The 'injury_time' argument must be greater than 0")
+
+        begin = time()
+        exit_code = await self.wait_process(timeout)
+        remain = timeout - (time() - begin) if timeout else None
+
+        if remain is not None:
+            callback_timeout = remain + injury_time if remain > 0.0 else injury_time
+            assert callback_timeout > 0.0
+            await wait_for(shield(self.wait_callbacks()), timeout=callback_timeout)
+        else:
+            await self.wait_callbacks()
         return exit_code
 
     def send_signal(self, signal) -> None:
@@ -312,6 +334,40 @@ class AsyncSubprocess:
 
     def kill(self) -> None:
         self.process.kill()
+
+    async def force_quit(
+        self,
+        timeout: Optional[float] = None,
+        interrupt=True,
+        injury_time=0.1,
+    ) -> int:
+        remain = timeout
+
+        if interrupt is not None:
+            self.interrupt()
+            begin = time()
+            try:
+                return await self.wait(remain, injury_time=injury_time)
+            except:  # noqa
+                pass
+            finally:
+                remain = remain - (time() - begin) if remain else None
+
+        self.terminate()
+        begin = time()
+        try:
+            return await self.wait(remain, injury_time=injury_time)
+        except:  # noqa
+            if sys.platform == "win32":
+                raise
+        finally:
+            remain = remain - (time() - begin) if remain else None
+
+        self.kill()  # On Windows kill() is an alias for terminate().
+        try:
+            return await self.wait(remain, injury_time=injury_time)
+        except:  # noqa
+            raise
 
     @property
     def status_text(self) -> str:

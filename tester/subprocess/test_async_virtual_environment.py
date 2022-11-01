@@ -86,7 +86,8 @@ class AsyncVirtualEnvironmentTestCase(IsolatedAsyncioTestCase):
         python = self.venv.create_python_subprocess()
         packages = await python.list()
         package_names = set(map(lambda x: x.name, packages))
-        self.assertSetEqual({"pip", "setuptools"}, package_names)
+        self.assertIn("pip", package_names)
+        self.assertIn("setuptools", package_names)
 
 
 if __name__ == "__main__":
