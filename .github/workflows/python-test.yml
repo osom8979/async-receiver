@@ -6,7 +6,7 @@ on:
       - master
 
 env:
-  WHICH_PYTHON: python3
+  USE_SYSTEM_PYTHON: python3
 
 jobs:
   test:
