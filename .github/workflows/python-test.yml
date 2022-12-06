@@ -5,6 +5,9 @@ on:
     branches:
       - master
 
+env:
+  WHICH_PYTHON: python3
+
 jobs:
   test:
     runs-on: ubuntu-latest
