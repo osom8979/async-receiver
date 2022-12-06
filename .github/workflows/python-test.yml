@@ -1,4 +1,4 @@
-name: CI
+name: Test
 
 on:
   push:
@@ -10,16 +10,18 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v1
+      - name: checkout
+        uses: actions/checkout@v1
         with:
           fetch-depth: 1
 
-      - name: Setup Python 3.9
+      - name: setup python 3.9
         uses: actions/setup-python@v1
         with:
           python-version: 3.9
 
-      - uses: actions/cache@v1
+      - name: pip caching
+        uses: actions/cache@v1
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.*.txt') }}
@@ -34,4 +36,20 @@ jobs:
 
       - name: Test with black
         run: |
-          python -m black --check .
+          ./black.sh
+
+      - name: Test with flake8
+        run: |
+          ./flake8.sh
+
+      - name: Test with isort
+        run: |
+          ./isort.sh
+
+      - name: Test with mypy
+        run: |
+          ./mypy.sh
+
+      - name: Test with pytest
+        run: |
+          ./pytest.sh
