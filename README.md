@@ -2,7 +2,7 @@
 
 [![PyPI](https://img.shields.io/pypi/v/async-receiver?style=flat-square)](https://pypi.org/project/async-receiver/)
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/async-receiver?style=flat-square)
-[![GitHub](https://img.shields.io/github/license/zer0/async-receiver?style=flat-square)](https://github.com/osom8979/async-receiver/)
+[![GitHub](https://img.shields.io/github/license/osom8979/async-receiver?style=flat-square)](https://github.com/osom8979/async-receiver/)
 
 Receive multiple types of data asynchronously
 
