@@ -6,7 +6,7 @@ on:
       - master
 
 env:
-  USE_SYSTEM_PYTHON: python3
+  USE_SYSTEM_PYTHON: 3
 
 jobs:
   test:
