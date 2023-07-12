@@ -27,7 +27,7 @@ jobs:
         uses: actions/cache@v1
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.*.txt') }}
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.*.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-
 
@@ -37,22 +37,10 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
 
-      - name: Test with black
+      - name: Test
         run: |
           ./black.sh
-
-      - name: Test with flake8
-        run: |
           ./flake8.sh
-
-      - name: Test with isort
-        run: |
           ./isort.sh
-
-      - name: Test with mypy
-        run: |
           ./mypy.sh
-
-      - name: Test with pytest
-        run: |
           ./pytest.sh
